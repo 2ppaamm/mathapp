@@ -1,63 +1,78 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Button, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, SectionList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { AuthContext } from './AuthContext';
+import { useAuth } from './AuthContext';  // Adjust the path as needed
+import NetInfo from "@react-native-community/netinfo";
 
 const HomeScreen = () => {
-  const [user, setUser] = useState(null);
-  const { isAuthenticated, authenticate } = useContext(AuthContext);
+  const { user, tracks, authenticate } = useAuth();
   const navigation = useNavigation();
+  const [groupedTracks, setGroupedTracks] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        if (!parsedUser.diagnostic) {
-          navigation.navigate('Dashboard');
-        }
-      } else if (!isAuthenticated) {
-        // Prompt user to login if not authenticated or userData not found
-        Alert.alert('Authentication Required', 'Please log in to continue.', [
-          { text: 'OK', onPress: authenticate }
-        ]);
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (!state.isConnected) {
+        Alert.alert("No Internet Connection", "Please check your internet connection.");
       }
-    };
+    });
 
-    fetchData();
-  }, [navigation, isAuthenticated]);
+    if (tracks) {
+      const levels = Object.entries(tracks.reduce((acc, track) => {
+        const level = `Primary ${track.level_id - 1}`;  // Adjust level display here
+        if (!acc[level]) acc[level] = [];
+        acc[level].push({
+          ...track,
+          skills: track.skills || []
+        });
+        return acc;
+      }, {})).map(([title, data]) => ({title, data}));
 
-  if (!user) {
+      setGroupedTracks(levels);
+    }
+
+    if (!user) {
+      Alert.alert("Authentication Required", "You need to log in to access this page.", [
+        { text: "Log In", onPress: authenticate }
+      ]);
+    }
+
+    return () => unsubscribe();
+  }, [user, tracks, authenticate]);
+
+  if (!user || !tracks) {
     return (
       <View style={styles.container}>
-        <Text>Loading user data or please log in...</Text>
-        <Button title="Log In" onPress={authenticate} />
+        <Text>Loading data...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Image source={require('../assets/welcome.png')} style={styles.logo} />
-      <Text style={styles.greeting}>Welcome back, <Text style={styles.boldText}>{user.firstname || user.email || 'User'}</Text></Text>
-      {user.diagnostic ? (
-        <View>
-          <Button title="Go to Diagnostic Test" onPress={() => navigation.navigate('Diagnostic')} />
-          <Button title="Continue to Dashboard" onPress={() => navigation.navigate('Dashboard')} />
+    <SectionList
+      sections={groupedTracks}
+      keyExtractor={(item, index) => item.id + index}
+      renderItem={({ item }) => (
+        <View style={styles.trackContainer}>
+          <Text style={styles.trackTitle}>{item.description}</Text>
+          {item.skills.map((skill, index) => (
+            <Text key={skill.id} style={styles.skillText}>
+              {index + 1}. {skill.description}
+            </Text>
+          ))}
         </View>
-      ) : (
-        <Button title="Continue to Dashboard" onPress={() => navigation.navigate('Dashboard')} />
       )}
-    </ScrollView>
+      renderSectionHeader={({ section: { title } }) => (
+        <Text style={styles.levelHeader}>{title}</Text>
+      )}
+      stickySectionHeadersEnabled
+      style={styles.container}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
     backgroundColor: '#fff',
   },
   logo: {
@@ -72,9 +87,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  boldText: {
+  levelHeader: {
+    fontSize: 16,
     fontWeight: 'bold',
-  }
+    color: '#fff',
+    backgroundColor: '#FF0000',
+    textAlign: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  trackContainer: {
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  trackTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  skillText: {
+    fontSize: 12,
+    paddingLeft: 10,
+    marginBottom: 2,
+  },
 });
 
 export default HomeScreen;
