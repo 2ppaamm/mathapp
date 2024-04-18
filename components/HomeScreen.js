@@ -1,43 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, SectionList, Alert } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';  // Adjust the path as needed
-import NetInfo from "@react-native-community/netinfo";
+
+const colors = ['#960000', '#d0acac', '#FFC0AC', '#E64646', '#FFD700'];  // Add more colors as needed
 
 const HomeScreen = () => {
-  const { user, tracks, authenticate } = useAuth();
+  const { authenticate } = useAuth();
   const navigation = useNavigation();
   const [groupedTracks, setGroupedTracks] = useState([]);
+  const [user, setUser] = useState(null);
+  const [tracks, setTracks] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      if (!state.isConnected) {
-        Alert.alert("No Internet Connection", "Please check your internet connection.");
+    const fetchDataFromStorage = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        const storedTracks = await AsyncStorage.getItem('trackData');
+        if (storedUser && storedTracks) {
+          const parsedUser = JSON.parse(storedUser);
+          const parsedTracks = JSON.parse(storedTracks);
+          setUser(parsedUser);
+          setTracks(parsedTracks);
+          organizeTracks(parsedTracks);
+        } else {
+          console.log("No user or tracks found in storage, authenticating.");
+          authenticate();
+        }
+      } catch (error) {
+        console.error('Failed to load data from storage:', error);
+        Alert.alert("Data Error", "Failed to load user data.");
       }
-    });
+    };
 
-    if (tracks) {
-      const levels = Object.entries(tracks.reduce((acc, track) => {
-        const level = `Primary ${track.level_id - 1}`;  // Adjust level display here
-        if (!acc[level]) acc[level] = [];
-        acc[level].push({
-          ...track,
-          skills: track.skills || []
-        });
-        return acc;
-      }, {})).map(([title, data]) => ({title, data}));
+    fetchDataFromStorage();
+  }, [authenticate]);
 
-      setGroupedTracks(levels);
-    }
+  const organizeTracks = (tracks) => {
+    const levels = tracks.reduce((acc, track) => {
+      const level = `Primary ${track.level_id - 1}`;
+      if (!acc[level]) acc[level] = [];
+      acc[level].push({
+        ...track,
+        skills: track.skills || []
+      });
+      return acc;
+    }, {});
 
-    if (!user) {
-      Alert.alert("Authentication Required", "You need to log in to access this page.", [
-        { text: "Log In", onPress: authenticate }
-      ]);
-    }
-
-    return () => unsubscribe();
-  }, [user, tracks, authenticate]);
+    setGroupedTracks(Object.entries(levels).map(([title, data]) => ({title, data})));
+  };
 
   if (!user || !tracks) {
     return (
@@ -47,22 +59,35 @@ const HomeScreen = () => {
     );
   }
 
+ 
+  const getColor = (title) => {
+    const index = parseInt(title.split(" ")[1]) % colors.length;
+    return colors[index];
+  };
+
   return (
     <SectionList
       sections={groupedTracks}
       keyExtractor={(item, index) => item.id + index}
-      renderItem={({ item }) => (
-        <View style={styles.trackContainer}>
+      renderItem={({ item, section }) => (
+        <View style={[styles.trackContainer, {backgroundColor: getColor(section.title)}]}>
           <Text style={styles.trackTitle}>{item.description}</Text>
-          {item.skills.map((skill, index) => (
-            <Text key={skill.id} style={styles.skillText}>
-              {index + 1}. {skill.description}
-            </Text>
-          ))}
+          <View style={styles.skillsContainer}>
+            {item.skills.map((skill, skillIndex) => (
+              <View key={skill.id} style={[
+                  styles.skillBox, 
+                  {marginLeft: (skillIndex % 2 === 0 ? 30 : -30) * (skillIndex % 3)}
+                ]}>
+                <Text style={styles.skillText}>
+                  {skill.description}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
       renderSectionHeader={({ section: { title } }) => (
-        <Text style={styles.levelHeader}>{title}</Text>
+        <Text style={[styles.levelHeader, {backgroundColor: getColor(title)}]}>{title}</Text>
       )}
       stickySectionHeadersEnabled
       style={styles.container}
@@ -71,45 +96,50 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  trackContainer: {
+    marginBottom: 20,
+    padding: 10,
+    // backgroundColor set dynamically
+  },
+    container: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  logo: {
-    width: 200,
-    height: 200,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  greeting: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
   levelHeader: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    backgroundColor: '#FF0000',
+     color: '#fff',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 4, 
     paddingHorizontal: 10,
   },
   trackContainer: {
     marginBottom: 20,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
+    padding: 0,
   },
   trackTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    margin: 15,
+    color: 'white',
   },
+  skillsContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundColor: '#fff', // White background for skills container
+  },
+  skillBox: {
+    width: 100, // Set width for the circle
+    height: 100, // Set height to the same as width to form a circle
+    borderRadius: 50, // Half of width/height to fully round the corners into a circle
+    backgroundColor: '#eee', // Background color of the circle
+    justifyContent: 'center', // Center the text vertically
+    alignItems: 'center', // Center the text horizontally
+    marginHorizontal: 10, // Provide horizontal spacing between circles
+    marginBottom: 10, // Provide bottom margin
+  },
+
   skillText: {
     fontSize: 12,
-    paddingLeft: 10,
-    marginBottom: 2,
   },
 });
 

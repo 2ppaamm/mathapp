@@ -12,21 +12,7 @@ import { AuthProvider } from './components/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
-const App = () => {
-  
-  useEffect(() => {
-    const clearStorage = async () => {
-      try {
-        await AsyncStorage.clear();
-        console.log('AsyncStorage is cleared!');
-      } catch (e) {
-        console.error('Failed to clear AsyncStorage:', e);
-      }
-    };
-
-    clearStorage();
-  }, []);
-
+const App = () => {                                                                    
   return (
     <AuthProvider>
       <NavigationContainer>
