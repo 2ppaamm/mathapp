@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext, } from 'react';
 import { View, Image, StyleSheet, ActivityIndicator,Button } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from './AuthContext'; // Update the path to where your AuthContext is defined
+
 
 const SplashScreen = () => {
-    const { isAuthenticated, user, isSubscriber, checkToken } = useAuth();
+    const { isAuthenticated, user, isSubscriber, checkToken,setIsoAuthCancle,setUser} = useAuth();
     const navigation = useNavigation();
 
     useEffect(() => {
@@ -20,11 +23,14 @@ const SplashScreen = () => {
     return (
         <View style={styles.container}>
             <Image source={require('../assets/welcome.png')} style={styles.logo} />
-   
             {isAuthenticated && user ? (
                 <View style={styles.buttonContainer}>
                     <Button title="Navigate Home" onPress={() => navigation.navigate('Home')} />
-                    <Button title="Log Out" onPress={() => {/* Handle log out */}} />
+                    <Button title="Log Out" onPress={() => {
+                    AsyncStorage.removeItem('userToken');
+                    setUser(null);
+                    setIsoAuthCancle(true)
+                    }} />
                 </View>
             ):         <ActivityIndicator size="large" color="#0000FF" />
             }

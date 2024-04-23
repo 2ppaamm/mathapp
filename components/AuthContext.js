@@ -9,7 +9,10 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [tracks, setTracks] = useState(null);
+    const [isoAuthCancle,setIsoAuthCancle]= useState(false);
     const [isSubscriber, setIsSubscriber] = useState(false);
+    const [token, setToken] = useState(null);
+
 
     const discovery = {
         authorizationEndpoint: `https://${AUTH0_DOMAIN}/authorize`,
@@ -25,11 +28,16 @@ export const AuthProvider = ({ children }) => {
         extraParams: { nonce: 'uniqueNonce' },
     },discovery);
 
-            
-
+        
+    useEffect(() => {
+        if (request&&token===null) {
+           promptAsync({ useProxy: true });
+        }
+      }, [request, promptAsync]);
   
     const checkToken = async () => {
         const storedToken = await AsyncStorage.getItem('userToken');
+        setToken(storedToken)
         console.log("Stored tockend---",storedToken)
         if (storedToken) {
             console.log("storedToken: ", storedToken);
@@ -37,9 +45,10 @@ export const AuthProvider = ({ children }) => {
         } else {
             setIsAuthenticated(false);
             console.log ("going to auth0");
-            promptAsync({ useProxy: true });
+           // promptAsync({ useProxy: true });
         }
     };
+
 
     useEffect(() => {
         console.log("Redirect url",makeRedirectUri({ useProxy: true }))
@@ -47,12 +56,17 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        console.log("Success params ---",response?.params)
+        console.log("Success params ---",response)
+        
         if (response?.type === 'success') {
             console.log("Success params ---",response.params)
             const { id_token } = response.params;
             AsyncStorage.setItem('userToken', id_token);
             validateToken(id_token);
+        }
+        if(response?.type === 'cancel')
+        {
+            setIsoAuthCancle(true);
         }
     }, [response]);
 
@@ -88,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, tracks, isSubscriber, authenticate: promptAsync, checkToken }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, tracks, isSubscriber, authenticate: promptAsync, checkToken,isoAuthCancle,setIsoAuthCancle,setUser}}>
             {children}
         </AuthContext.Provider>
     );

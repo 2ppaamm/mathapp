@@ -1,12 +1,16 @@
 import React, { useContext } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { AuthContext } from './AuthContext'; // Update the path to where your AuthContext is defined
+import { useNavigation } from '@react-navigation/native';
 
 function AuthButton() {
-  const { authenticate } = useContext(AuthContext);
+  const { authenticate,setIsoAuthCancle} = useContext(AuthContext);
+  const navigation = useNavigation();
 
   const handlePress = () => {
     authenticate();
+    setIsoAuthCancle(false)
+    
   };
 
   return (
