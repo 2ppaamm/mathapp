@@ -23,10 +23,14 @@ export const AuthProvider = ({ children }) => {
         responseType: 'id_token token',
         scopes: ['openid', 'profile', 'email', 'offline_access'],
         extraParams: { nonce: 'uniqueNonce' },
-    }, discovery);
+    },discovery);
 
+            
+
+  
     const checkToken = async () => {
         const storedToken = await AsyncStorage.getItem('userToken');
+        console.log("Stored tockend---",storedToken)
         if (storedToken) {
             console.log("storedToken: ", storedToken);
             validateToken(storedToken);
@@ -38,11 +42,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        console.log("Redirect url",makeRedirectUri({ useProxy: true }))
         checkToken();
     }, []);
 
     useEffect(() => {
+        console.log("Success params ---",response?.params)
         if (response?.type === 'success') {
+            console.log("Success params ---",response.params)
             const { id_token } = response.params;
             AsyncStorage.setItem('userToken', id_token);
             validateToken(id_token);
@@ -50,12 +57,14 @@ export const AuthProvider = ({ children }) => {
     }, [response]);
 
     const validateToken = async (token) => {
+        console.log("Validation token --",token)
         try {
-            const response = await fetch(`${BACKEND_URL}/validateToken`, {
+            const response = await fetch(`${BACKEND_URL}/loginInfo`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept':'application/json'
                 },
             });
             const data = await response.json();
@@ -63,7 +72,9 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
                 setUser(data.user);
                 setTracks(data.tracks);
-                setIsSubscriber(data.isSubscriber);
+                setIsSubscriber(data.code===201&&(false));
+                AsyncStorage.setItem('userData', JSON.stringify(data?.user));
+                AsyncStorage.setItem('trackData', JSON.stringify(data?.tracks));
             } else {
                 AsyncStorage.removeItem('userToken');
                 setIsAuthenticated(false);

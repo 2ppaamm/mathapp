@@ -20,7 +20,10 @@ const App = () => {
           <Stack.Screen
             name="Splash"
             component={SplashScreen}
-            options={{ headerShown: false }}
+            options={{ 
+              title:"",
+              headerShown: false
+            }}
           />
           <Stack.Screen
             name="Auth"

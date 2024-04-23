@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Image, StyleSheet, ActivityIndicator,Button } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -12,22 +12,22 @@ const SplashScreen = () => {
             console.log("not authenticated");
             checkToken(); // Trigger token check
         } else if (isAuthenticated && user) {
-            if (!isSubscriber) {
                 navigation.navigate('Home');
-            } // No else needed, as Auth buttons will be shown by default if isSubscriber is true
+             // No else needed, as Auth buttons will be shown by default if isSubscriber is true
         }
     }, [isAuthenticated, user, isSubscriber, navigation]);
 
     return (
         <View style={styles.container}>
             <Image source={require('../assets/welcome.png')} style={styles.logo} />
-            <ActivityIndicator size="large" color="#0000FF" />
-            {isAuthenticated && user && isSubscriber && (
+   
+            {isAuthenticated && user ? (
                 <View style={styles.buttonContainer}>
                     <Button title="Navigate Home" onPress={() => navigation.navigate('Home')} />
                     <Button title="Log Out" onPress={() => {/* Handle log out */}} />
                 </View>
-            )}
+            ):         <ActivityIndicator size="large" color="#0000FF" />
+            }
         </View>
     );
 };
