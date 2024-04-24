@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet,Image } from 'react-native';
 import AuthButton from './AuthButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -20,7 +20,7 @@ const AuthScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>Welcome to the Authentication Screen</Text>
+                        <Image source={require('../assets/welcome.png')} style={styles.logo} />
             {showButton && <AuthButton />}
         </View>
     );
@@ -36,7 +36,12 @@ const styles = StyleSheet.create({
     text: {
         fontSize: 18,
         marginBottom: 20,
-    }
+    },
+    logo: {
+        width: 200,
+        height: 200,
+        marginBottom: 20,  // Add spacing between the logo and buttons
+    },
 });
 
 export default AuthScreen;

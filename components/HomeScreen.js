@@ -1,10 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SectionList, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, SectionList, Alert, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';  // Adjust the path as needed
 
 const colors = ['#960000', '#d0acac', '#FFC0AC', '#E64646', '#FFD700'];  // Add more colors as needed
+
+const getColor = (title) => {
+  const index = parseInt(title.split(" ")[1]) % colors.length;
+  return colors[index];
+};
+
+const  SkillList=(props)=>{
+  const {item,section}=props;
+  return (
+    <View style={[styles.trackContainer, {backgroundColor: getColor(section.title)}]}>
+    <Text style={styles.trackTitle}>{item.description}</Text>
+    <View style={styles.skillsContainer}>
+
+      <FlatList
+        data={item.skills}
+        keyExtractor={(skill, skillIndex) => skill.id}
+        renderItem={({ item,index }) => (
+          <View key={item.id} style={[
+            styles.skillBox, 
+            {marginLeft: (index % 2 === 0 ? 30 : -30) * (index % 3)}
+          ]}>
+          <Text style={styles.skillText}>
+            {item.description}
+          </Text>
+        </View>
+        )}
+      />
+    </View>
+  </View>
+  )
+}
+
 
 const HomeScreen = () => {
   const { authenticate } = useAuth();
@@ -12,8 +44,8 @@ const HomeScreen = () => {
   const [groupedTracks, setGroupedTracks] = useState([]);
   const [user, setUser] = useState(null);
   const [tracks, setTracks] = useState(null);
-
   useEffect(() => {
+    console.log("section llist ---")
     const fetchDataFromStorage = async () => {
       try {
         const storedUser = await AsyncStorage.getItem('userData');
@@ -60,32 +92,13 @@ const HomeScreen = () => {
   }
 
  
-  const getColor = (title) => {
-    const index = parseInt(title.split(" ")[1]) % colors.length;
-    return colors[index];
-  };
+
 
   return (
     <SectionList
       sections={groupedTracks}
       keyExtractor={(item, index) => item.id + index}
-      renderItem={({ item, section }) => (
-        <View style={[styles.trackContainer, {backgroundColor: getColor(section.title)}]}>
-          <Text style={styles.trackTitle}>{item.description}</Text>
-          <View style={styles.skillsContainer}>
-            {item.skills.map((skill, skillIndex) => (
-              <View key={skill.id} style={[
-                  styles.skillBox, 
-                  {marginLeft: (skillIndex % 2 === 0 ? 30 : -30) * (skillIndex % 3)}
-                ]}>
-                <Text style={styles.skillText}>
-                  {skill.description}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      renderItem={({item,section})=><SkillList item={item} section={section} />}
       renderSectionHeader={({ section: { title } }) => (
         <Text style={[styles.levelHeader, {backgroundColor: getColor(title)}]}>{title}</Text>
       )}

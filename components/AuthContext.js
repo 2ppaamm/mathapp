@@ -9,7 +9,10 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [tracks, setTracks] = useState(null);
+    const [isoAuthCancle,setIsoAuthCancle]= useState(false);
     const [isSubscriber, setIsSubscriber] = useState(false);
+    const [token, setToken] = useState(null);
+
 
     const discovery = {
         authorizationEndpoint: `https://${AUTH0_DOMAIN}/authorize`,
@@ -23,39 +26,59 @@ export const AuthProvider = ({ children }) => {
         responseType: 'id_token token',
         scopes: ['openid', 'profile', 'email', 'offline_access'],
         extraParams: { nonce: 'uniqueNonce' },
-    }, discovery);
+    },discovery);
 
+        
+    useEffect(() => {
+        if (request&&token===null) {
+           promptAsync({ useProxy: true });
+        }
+      }, [request, promptAsync]);
+  
     const checkToken = async () => {
         const storedToken = await AsyncStorage.getItem('userToken');
+        setToken(storedToken)
+        console.log("Stored tockend---",storedToken)
         if (storedToken) {
             console.log("storedToken: ", storedToken);
             validateToken(storedToken);
         } else {
             setIsAuthenticated(false);
             console.log ("going to auth0");
-            promptAsync({ useProxy: true });
+           // promptAsync({ useProxy: true });
         }
     };
 
+
     useEffect(() => {
+        console.log("Redirect url",makeRedirectUri({ useProxy: true }))
         checkToken();
     }, []);
 
     useEffect(() => {
+        console.log("Success params ---",response)
+        
         if (response?.type === 'success') {
+            console.log("Success params ---",response.params)
             const { id_token } = response.params;
             AsyncStorage.setItem('userToken', id_token);
             validateToken(id_token);
         }
+        if(response?.type === 'cancel')
+        {
+            setIsoAuthCancle(true);
+        }
     }, [response]);
 
     const validateToken = async (token) => {
+        console.log("Validation token --",token)
         try {
-            const response = await fetch(`${BACKEND_URL}/validateToken`, {
+            const response = await fetch(`${BACKEND_URL}/loginInfo`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept':'application/json'
                 },
             });
             const data = await response.json();
@@ -63,7 +86,9 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
                 setUser(data.user);
                 setTracks(data.tracks);
-                setIsSubscriber(data.isSubscriber);
+                setIsSubscriber(data.code===201&&(false));
+                AsyncStorage.setItem('userData', JSON.stringify(data?.user));
+                AsyncStorage.setItem('trackData', JSON.stringify(data?.tracks));
             } else {
                 AsyncStorage.removeItem('userToken');
                 setIsAuthenticated(false);
@@ -77,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, tracks, isSubscriber, authenticate: promptAsync, checkToken }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, tracks, isSubscriber, authenticate: promptAsync, checkToken,isoAuthCancle,setIsoAuthCancle,setUser}}>
             {children}
         </AuthContext.Provider>
     );
