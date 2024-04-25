@@ -38,9 +38,8 @@ export const AuthProvider = ({ children }) => {
     const checkToken = async () => {
         const storedToken = await AsyncStorage.getItem('userToken');
         setToken(storedToken)
-        console.log("Stored tockend---",storedToken)
+        // console.log("Stored tockend---",storedToken)
         if (storedToken) {
-            console.log("storedToken: ", storedToken);
             validateToken(storedToken);
         } else {
             setIsAuthenticated(false);
@@ -56,10 +55,10 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        console.log("Success params ---",response)
+        // console.log("Success params ---",response)
         
         if (response?.type === 'success') {
-            console.log("Success params ---",response.params)
+            // console.log("Success params ---",response.params)
             const { id_token } = response.params;
             AsyncStorage.setItem('userToken', id_token);
             validateToken(id_token);
@@ -71,7 +70,7 @@ export const AuthProvider = ({ children }) => {
     }, [response]);
 
     const validateToken = async (token) => {
-        console.log("Validation token --",token)
+        // console.log("Validation token --",token)
         try {
             const response = await fetch(`${BACKEND_URL}/loginInfo`, {
                 method: 'POST',
