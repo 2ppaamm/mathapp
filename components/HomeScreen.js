@@ -72,7 +72,6 @@ const HomeScreen = () => {
         <Text style={[styles.levelHeader, {backgroundColor: getColor(title)}]}>{title}</Text>
       )}
       stickySectionHeadersEnabled
-      removeClippedSubviews={true}
 
     />
     </SafeAreaView>
